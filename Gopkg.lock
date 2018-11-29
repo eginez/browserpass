@@ -2,45 +2,75 @@
 
 
 [[projects]]
-  name = "github.com/gokyle/twofactor"
-  packages = ["."]
-  revision = "bbc82ff8de72400ce39a13077627531d9841ad62"
-  version = "v1.0.1"
+  digest = "1:29990cf3c6acbabbb9ca5db8ee9e9c0b6717610e6c76a1243e2446042c15628e"
+  name = "github.com/dannyvankooten/browserpass"
+  packages = [
+    ".",
+    "pass",
+    "protector",
+  ]
+  pruneopts = ""
+  revision = "c00a55268eff0dc8e0bcd29733bc86f0918df29b"
+  version = "2.0.22"
 
 [[projects]]
   branch = "master"
+  digest = "1:c6c1a768446cae7c9c5033afbaeac51b4a92256a30bbf07b5191e86b03a5ca42"
+  name = "github.com/gokyle/twofactor"
+  packages = ["."]
+  pruneopts = ""
+  revision = "bbc82ff8de72400ce39a13077627531d9841ad62"
+
+[[projects]]
+  branch = "master"
+  digest = "1:9b48311f6a3af820598be7297cd14657ecea9a6e69f540351a8567d49aec67bb"
   name = "github.com/mattn/go-zglob"
   packages = [
     ".",
-    "fastwalk"
+    "fastwalk",
   ]
+  pruneopts = ""
   revision = "4959821b481786922ac53e7ef25c61ae19fb7c36"
 
 [[projects]]
+  digest = "1:3feed91ced3f79bdb9b1edc0efd51108abd1815da26f632a2015d0393245a592"
   name = "github.com/sahilm/fuzzy"
   packages = ["."]
+  pruneopts = ""
   revision = "0e1c4a4e1f632f936a5c0fa6176076eea01c054b"
   version = "v0.0.3"
 
 [[projects]]
   branch = "master"
+  digest = "1:d4eda90cc85514f76c499c16e3ef2a6c65a58edac31c57a69c2a1e6105413667"
   name = "golang.org/x/sys"
   packages = ["unix"]
+  pruneopts = ""
   revision = "3ccc7e5779793fd54564baf60c51bf017955e0ba"
 
 [[projects]]
   branch = "master"
+  digest = "1:e106c72b32c194fa60e8ce1b09884d46bd1e477b90a7b67e5d66d69f7fce91b5"
   name = "rsc.io/qr"
   packages = [
     ".",
     "coding",
-    "gf256"
+    "gf256",
   ]
+  pruneopts = ""
   revision = "48b2ede4844e13f1a2b7ce4d2529c9af7e359fc5"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d14ee1e21acbc5485af24c8de94d50a9e3f9154712df345f9320cff01f2d4a37"
+  input-imports = [
+    "github.com/dannyvankooten/browserpass",
+    "github.com/dannyvankooten/browserpass/pass",
+    "github.com/dannyvankooten/browserpass/protector",
+    "github.com/gokyle/twofactor",
+    "github.com/mattn/go-zglob",
+    "github.com/sahilm/fuzzy",
+    "golang.org/x/sys/unix",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

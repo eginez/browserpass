@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/dannyvankooten/browserpass"
-	"github.com/dannyvankooten/browserpass/protector"
+	"github.com/browserpass/browserpass"
+	"github.com/browserpass/browserpass/protector"
 )
 
 const VERSION = "2.0.22"

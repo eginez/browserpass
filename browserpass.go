@@ -12,8 +12,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dannyvankooten/browserpass/pass"
-	"github.com/dannyvankooten/browserpass/protector"
+	"github.com/browserpass/browserpass/pass"
+	"github.com/browserpass/browserpass/protector"
 	"github.com/gokyle/twofactor"
 )
 
@@ -64,6 +64,7 @@ func SendError(err error, stdout io.Writer) error {
 
 // Run starts browserpass.
 func Run(stdin io.Reader, stdout io.Writer) error {
+
 	protector.Protect("stdio rpath proc exec getpw")
 	for {
 		// Get message length, 4 bytes
@@ -109,9 +110,6 @@ func Run(stdin io.Reader, stdout io.Writer) error {
 			login, err := readLoginGPG(rc)
 			if err != nil {
 				return SendError(err, stdout)
-			}
-			if login.Username == "" {
-				login.Username = guessUsername(data.Entry)
 			}
 			resp = login
 		default:
@@ -224,45 +222,58 @@ func parseLogin(r io.Reader) (*Login, error) {
 	login := new(Login)
 
 	scanner := bufio.NewScanner(r)
-
-	// The first line is the password
-	scanner.Scan()
-	login.Password = scanner.Text()
-
-	// Keep reading file for string in "login:", "username:" or "user:" format (case insensitive).
-	userPattern := regexp.MustCompile("(?i)^(login|username|user):")
-	urlPattern := regexp.MustCompile("(?i)^(url|link|website|web|site):")
-	autoSubmitPattern := regexp.MustCompile("(?i)^autosubmit:")
+	lines := make([]string, 0)
 	for scanner.Scan() {
-		line := scanner.Text()
-		if login.OTP == "" {
-			parseTotp(line, login)
-		}
-		if login.Username == "" {
-			replaced := userPattern.ReplaceAllString(line, "")
-			if len(replaced) != len(line) {
-				login.Username = strings.TrimSpace(replaced)
-			}
-		}
-		if login.URL == "" {
-			replaced := urlPattern.ReplaceAllString(line, "")
-			if len(replaced) != len(line) {
-				login.URL = strings.TrimSpace(replaced)
-			}
-		}
-		if login.AutoSubmit == nil {
-			replaced := autoSubmitPattern.ReplaceAllString(line, "")
-			if len(replaced) != len(line) {
-				value := strings.ToLower(strings.TrimSpace(replaced)) == "true"
-				login.AutoSubmit = &value
-			}
+		l := scanner.Text()
+		if l != "" {
+			lines = append(lines, l)
 		}
 	}
 
-	// if an unlabelled OTP is present, label it with the username
-	if strings.TrimSpace(login.OTPLabel) == "" && login.OTP != "" {
-		login.OTPLabel = login.Username
+	if len(lines) >= 1 {
+		login.Username = lines[0]
+
 	}
+	if len(lines) >= 2 {
+		login.Password = lines[1]
+
+	}
+	/*
+		// Keep reading file for string in "login:", "username:" or "user:" format (case insensitive).
+		userPattern := regexp.MustCompile("(?i)^(login|username|user):")
+		urlPattern := regexp.MustCompile("(?i)^(url|link|website|web|site):")
+		autoSubmitPattern := regexp.MustCompile("(?i)^autosubmit:")
+		for scanner.Scan() {
+			line := scanner.Text()
+			if login.OTP == "" {
+				parseTotp(line, login)
+			}
+			if login.Username == "" {
+				replaced := userPattern.ReplaceAllString(line, "")
+				if len(replaced) != len(line) {
+					login.Username = strings.TrimSpace(replaced)
+				}
+			}
+			if login.URL == "" {
+				replaced := urlPattern.ReplaceAllString(line, "")
+				if len(replaced) != len(line) {
+					login.URL = strings.TrimSpace(replaced)
+				}
+			}
+			if login.AutoSubmit == nil {
+				replaced := autoSubmitPattern.ReplaceAllString(line, "")
+				if len(replaced) != len(line) {
+					value := strings.ToLower(strings.TrimSpace(replaced)) == "true"
+					login.AutoSubmit = &value
+				}
+			}
+		}
+
+		// if an unlabelled OTP is present, label it with the username
+		if strings.TrimSpace(login.OTPLabel) == "" && login.OTP != "" {
+			login.OTPLabel = login.Username
+		}
+	*/
 
 	return login, nil
 }
