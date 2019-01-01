@@ -24,6 +24,8 @@ type keepassStoreConfig struct {
 	KeyPath      string `json:"key"`
 }
 
+var defaultConfigDir = filepath.Join(".browserkeepass", "config")
+
 // NewKeepassStore creates a new keePass store from with the provided defaults
 func NewKeepassStore(stores []StoreDefinition, useFuzzy bool) (Store, error) {
 	usr, err := user.Current()
@@ -31,7 +33,7 @@ func NewKeepassStore(stores []StoreDefinition, useFuzzy bool) (Store, error) {
 		return nil, err
 	}
 
-	configPath := filepath.Join(usr.HomeDir, "keepass.config")
+	configPath := filepath.Join(usr.HomeDir, defaultConfigDir)
 	if len(stores) == 1 {
 		configPath = stores[0].Path
 	}
