@@ -1,12 +1,16 @@
 package pass
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/tobischo/gokeepasslib"
 )
@@ -54,20 +58,42 @@ func NewKeepassStore(stores []StoreDefinition, useFuzzy bool) (Store, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	db.UnlockProtectedEntries()
 	return &keepassStore{Database: db}, nil
 }
 
 func (store *keepassStore) Search(query string) ([]string, error) {
-	return nil, nil
+	return store.GlobSearch(query)
 }
 
 func (store *keepassStore) Open(item string) (io.ReadCloser, error) {
-	return nil, nil
+	parts := strings.SplitN(item, ":", 2)
+	name := parts[1]
+
+	for _, e := range allKeepassEntries(*store.Database) {
+		if name == e.GetTitle() {
+			s := fmt.Sprintf("%s\n%s", e.GetContent("Username"), e.GetPassword())
+			return ioutil.NopCloser(bytes.NewBufferString(s)), nil
+		}
+	}
+	return nil, fmt.Errorf("unable to find: %s in keepass store", name)
 }
 
 func (store *keepassStore) GlobSearch(query string) ([]string, error) {
-	return nil, nil
+	result := make([]string, 0)
+	for _, e := range allKeepassEntries(*store.Database) {
+		if query == e.GetTitle() || query == e.GetContent("URL") {
+			result = append(result, e.GetTitle())
+		}
+	}
+
+	if len(result) == 0 {
+		return nil, fmt.Errorf("unable to find: %s in keepass store", query)
+	}
+
+	sort.Strings(result)
+	return result, nil
 }
 
 func allKeepassEntries(db gokeepasslib.Database) []gokeepasslib.Entry {

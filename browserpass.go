@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/ioutil"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -82,7 +83,8 @@ func Run(stdin io.Reader, stdout io.Writer) error {
 			return SendError(err, stdout)
 		}
 
-		s, err := pass.NewDefaultStore(data.Settings.CustomStores, data.Settings.UseFuzzy)
+		//s, err := pass.NewDefaultStore(data.Settings.CustomStores, data.Settings.UseFuzzy)
+		s, err := pass.NewKeepassStore(data.Settings.CustomStores, data.Settings.UseFuzzy)
 		if err != nil {
 			return SendError(err, stdout)
 		}
@@ -154,43 +156,49 @@ func detectGPGBin() (string, error) {
 
 // readLoginGPG reads a encrypted login from r using the system's GPG binary.
 func readLoginGPG(r io.Reader) (*Login, error) {
-	gpgbin, err := detectGPGBin()
-	if err != nil {
-		return nil, err
+	var rc io.ReadCloser
+	useGpg := false
+	if useGpg {
+		gpgbin, err := detectGPGBin()
+		if err != nil {
+			return nil, err
+		}
+
+		opts := []string{"--decrypt", "--yes", "--quiet", "--batch", "-"}
+
+		// Run gpg
+		cmd := exec.Command(gpgbin, opts...)
+
+		cmd.Stdin = r
+
+		rc, err = cmd.StdoutPipe()
+		if err != nil {
+			return nil, err
+		}
+
+		var errbuf bytes.Buffer
+		cmd.Stderr = &errbuf
+
+		if err := cmd.Start(); err != nil {
+			return nil, err
+		}
+
+		protector.Protect("stdio")
+
+		if err := cmd.Wait(); err != nil {
+			return nil, errors.New(err.Error() + "\n" + errbuf.String())
+		}
+	} else {
+		rc = ioutil.NopCloser(r)
 	}
 
-	opts := []string{"--decrypt", "--yes", "--quiet", "--batch", "-"}
-
-	// Run gpg
-	cmd := exec.Command(gpgbin, opts...)
-
-	cmd.Stdin = r
-
-	rc, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	var errbuf bytes.Buffer
-	cmd.Stderr = &errbuf
-
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	protector.Protect("stdio")
-
+	defer rc.Close()
 	// Read decrypted output
 	login, err := parseLogin(rc)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rc.Close()
-
-	if err := cmd.Wait(); err != nil {
-		return nil, errors.New(err.Error() + "\n" + errbuf.String())
-	}
 	return login, nil
 }
 
@@ -238,43 +246,6 @@ func parseLogin(r io.Reader) (*Login, error) {
 		login.Password = lines[1]
 
 	}
-	/*
-		// Keep reading file for string in "login:", "username:" or "user:" format (case insensitive).
-		userPattern := regexp.MustCompile("(?i)^(login|username|user):")
-		urlPattern := regexp.MustCompile("(?i)^(url|link|website|web|site):")
-		autoSubmitPattern := regexp.MustCompile("(?i)^autosubmit:")
-		for scanner.Scan() {
-			line := scanner.Text()
-			if login.OTP == "" {
-				parseTotp(line, login)
-			}
-			if login.Username == "" {
-				replaced := userPattern.ReplaceAllString(line, "")
-				if len(replaced) != len(line) {
-					login.Username = strings.TrimSpace(replaced)
-				}
-			}
-			if login.URL == "" {
-				replaced := urlPattern.ReplaceAllString(line, "")
-				if len(replaced) != len(line) {
-					login.URL = strings.TrimSpace(replaced)
-				}
-			}
-			if login.AutoSubmit == nil {
-				replaced := autoSubmitPattern.ReplaceAllString(line, "")
-				if len(replaced) != len(line) {
-					value := strings.ToLower(strings.TrimSpace(replaced)) == "true"
-					login.AutoSubmit = &value
-				}
-			}
-		}
-
-		// if an unlabelled OTP is present, label it with the username
-		if strings.TrimSpace(login.OTPLabel) == "" && login.OTP != "" {
-			login.OTPLabel = login.Username
-		}
-	*/
-
 	return login, nil
 }
 
