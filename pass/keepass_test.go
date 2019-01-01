@@ -1,9 +1,11 @@
 package pass
 
 import (
-	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/tobischo/gokeepasslib"
 )
@@ -22,13 +24,16 @@ func TestOpenKeepass(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//entry := db.Content.Root.Groups[0].Groups[0].Entries[0]
+
 	db.UnlockProtectedEntries()
 	entries := allKeepassEntries(*db)
 
 	for _, et := range entries {
-		fmt.Println(et.GetTitle())
-		fmt.Println(et.GetContent("URL"))
+		assert.True(t, et.GetTitle() != "")
+		/*
+			assert.True(t, et.GetContent("UserName") != "")
+			assert.True(t, et.GetContent("URL") != "")
+		*/
 	}
 }
 
@@ -47,4 +52,25 @@ func TestOpenConfig(t *testing.T) {
 		t.Error("could not open")
 	}
 
+}
+func TestGetLogin(t *testing.T) {
+	st := []StoreDefinition{
+		StoreDefinition{
+			Path: "keepass.config",
+		},
+	}
+	store, err := NewKeepassStore(st, true)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	ss, err := store.Open("one:sample")
+	assert.NoError(t, err)
+	b, _ := ioutil.ReadAll(ss)
+	assert.Equal(t, "uuser\nesteban", string(b))
+
+	ss, err = store.Open("sample")
+	assert.NoError(t, err)
+	b, _ = ioutil.ReadAll(ss)
+	assert.Equal(t, "uuser\nesteban", string(b))
 }

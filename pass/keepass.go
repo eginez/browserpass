@@ -69,21 +69,25 @@ func (store *keepassStore) Search(query string) ([]string, error) {
 
 func (store *keepassStore) Open(item string) (io.ReadCloser, error) {
 	parts := strings.SplitN(item, ":", 2)
-	name := parts[1]
+	name := parts[0]
+	if len(parts) > 1 {
+		name = parts[1]
+	}
 
 	for _, e := range allKeepassEntries(*store.Database) {
 		if name == e.GetTitle() {
-			s := fmt.Sprintf("%s\n%s", e.GetContent("Username"), e.GetPassword())
+			s := fmt.Sprintf("%s\n%s", e.GetContent("UserName"), e.GetPassword())
 			return ioutil.NopCloser(bytes.NewBufferString(s)), nil
 		}
 	}
-	return nil, fmt.Errorf("unable to find: %s in keepass store", name)
+	return nil, fmt.Errorf("unable to open: %s in keepass store", name)
 }
 
 func (store *keepassStore) GlobSearch(query string) ([]string, error) {
 	result := make([]string, 0)
 	for _, e := range allKeepassEntries(*store.Database) {
-		if query == e.GetTitle() || query == e.GetContent("URL") {
+		if strings.Contains(e.GetTitle(), query) ||
+			strings.Contains(e.GetContent("URL"), query) {
 			result = append(result, e.GetTitle())
 		}
 	}

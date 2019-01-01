@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -29,6 +28,9 @@ type Login struct {
 }
 
 var endianness = binary.LittleEndian
+
+//Use gpg or keepass
+var useGpg = false
 
 // Settings info for the browserpass program.
 //
@@ -83,8 +85,14 @@ func Run(stdin io.Reader, stdout io.Writer) error {
 			return SendError(err, stdout)
 		}
 
-		//s, err := pass.NewDefaultStore(data.Settings.CustomStores, data.Settings.UseFuzzy)
-		s, err := pass.NewKeepassStore(data.Settings.CustomStores, data.Settings.UseFuzzy)
+		var s pass.Store
+		var err error
+		if useGpg {
+			s, err = pass.NewDefaultStore(data.Settings.CustomStores, data.Settings.UseFuzzy)
+		} else {
+			s, err = pass.NewKeepassStore(data.Settings.CustomStores, data.Settings.UseFuzzy)
+		}
+
 		if err != nil {
 			return SendError(err, stdout)
 		}
@@ -156,50 +164,11 @@ func detectGPGBin() (string, error) {
 
 // readLoginGPG reads a encrypted login from r using the system's GPG binary.
 func readLoginGPG(r io.Reader) (*Login, error) {
-	var rc io.ReadCloser
-	useGpg := false
-	if useGpg {
-		gpgbin, err := detectGPGBin()
-		if err != nil {
-			return nil, err
-		}
-
-		opts := []string{"--decrypt", "--yes", "--quiet", "--batch", "-"}
-
-		// Run gpg
-		cmd := exec.Command(gpgbin, opts...)
-
-		cmd.Stdin = r
-
-		rc, err = cmd.StdoutPipe()
-		if err != nil {
-			return nil, err
-		}
-
-		var errbuf bytes.Buffer
-		cmd.Stderr = &errbuf
-
-		if err := cmd.Start(); err != nil {
-			return nil, err
-		}
-
-		protector.Protect("stdio")
-
-		if err := cmd.Wait(); err != nil {
-			return nil, errors.New(err.Error() + "\n" + errbuf.String())
-		}
-	} else {
-		rc = ioutil.NopCloser(r)
-	}
-
-	defer rc.Close()
-	// Read decrypted output
-	login, err := parseLogin(rc)
+	login, err := parseLogin(r)
 	if err != nil {
 		return nil, err
 	}
-
-	return login, nil
+	return login, err
 }
 
 func parseTotp(str string, l *Login) error {
