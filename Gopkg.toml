@@ -28,3 +28,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/mattn/go-zglob"
+
+[[constraint]]
+  name = "github.com/tobischo/gokeepasslib"
+  version = "1.0.0"

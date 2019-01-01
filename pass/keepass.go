@@ -1,0 +1,84 @@
+package pass
+
+import (
+	"encoding/json"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/user"
+	"path/filepath"
+
+	"github.com/tobischo/gokeepasslib"
+)
+
+type keepassStore struct {
+	Database *gokeepasslib.Database
+}
+
+type keepassStoreConfig struct {
+	DatabasePath string `json:"db"`
+	KeyPath      string `json:"key"`
+}
+
+// NewKeepassStore creates a new keePass store from with the provided defaults
+func NewKeepassStore(stores []StoreDefinition, useFuzzy bool) (Store, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return nil, err
+	}
+
+	configPath := filepath.Join(usr.HomeDir, "keepass.config")
+	if len(stores) == 1 {
+		configPath = stores[0].Path
+	}
+
+	configContent, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	config := keepassStoreConfig{}
+	json.Unmarshal(configContent, &config)
+
+	db := gokeepasslib.NewDatabase()
+	db.Credentials, err = gokeepasslib.NewKeyCredentials(config.KeyPath)
+	if err != nil {
+		return nil, err
+	}
+
+	passContent, err := os.Open(config.DatabasePath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = gokeepasslib.NewDecoder(passContent).Decode(db)
+	if err != nil {
+		return nil, err
+	}
+	db.UnlockProtectedEntries()
+	return &keepassStore{Database: db}, nil
+}
+
+func (store *keepassStore) Search(query string) ([]string, error) {
+	return nil, nil
+}
+
+func (store *keepassStore) Open(item string) (io.ReadCloser, error) {
+	return nil, nil
+}
+
+func (store *keepassStore) GlobSearch(query string) ([]string, error) {
+	return nil, nil
+}
+
+func allKeepassEntries(db gokeepasslib.Database) []gokeepasslib.Entry {
+	return allEntries(db.Content.Root.Groups)
+}
+
+func allEntries(gs []gokeepasslib.Group) []gokeepasslib.Entry {
+	entries := make([]gokeepasslib.Entry, 0)
+	for _, g1 := range gs {
+		entries = append(entries, g1.Entries...)
+		entries = append(entries, allEntries(g1.Groups)...)
+	}
+	return entries
+}
