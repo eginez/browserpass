@@ -88,8 +88,10 @@ func (store *keepassStore) Open(item string) (io.ReadCloser, error) {
 func (store *keepassStore) GlobSearch(query string) ([]string, error) {
 	result := make([]string, 0)
 	for _, e := range allKeepassEntries(*store.Database) {
-		if strings.Contains(e.GetTitle(), query) ||
-			strings.Contains(e.GetContent("URL"), query) {
+		titleLower := strings.ToLower(e.GetTitle())
+		queryLower := strings.ToLower(query)
+		if strings.Contains(titleLower, queryLower) ||
+			strings.Contains(e.GetContent("URL"), queryLower) {
 			result = append(result, e.GetTitle())
 		}
 	}
