@@ -11,7 +11,7 @@ import (
 	"github.com/browserpass/browserpass/protector"
 )
 
-const VERSION = "2.0.22"
+const VERSION = "3.0.0"
 
 func main() {
 	protector.Protect("stdio rpath proc exec getpw")
